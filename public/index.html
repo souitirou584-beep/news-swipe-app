@@ -6,6 +6,11 @@
 <title>10秒ニュース | スワイプで読む</title>
 <meta name="description" content="上下左右スワイプ・キーボード操作でサクサク読めるニュースアプリ" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<!-- 丸みのあるモダンフォント（M PLUS Rounded 1c）をインポート -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --bg: #0b1120;
@@ -29,7 +34,7 @@
     overflow: hidden;
     background: var(--bg);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   #app {
@@ -50,9 +55,10 @@
   }
 
   .app-name {
-    font-size: 18px;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 19px;
     font-weight: 800;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
   }
   .app-name span { color: var(--accent); }
 
@@ -66,7 +72,7 @@
     border-radius: 999px;
   }
 
-  /* Swiper Containers */
+  /* Swipers */
   .swiper-vertical-main {
     flex: 1 1 auto;
     width: 100%;
@@ -134,16 +140,18 @@
     margin-left: auto;
   }
 
-  /* 記事見出し（サイズ拡大） */
+  /* タイトルフォント（丸みのあるフォント） */
   h1.headline {
+    font-family: 'M PLUS Rounded 1c', "Noto Sans JP", sans-serif;
     font-size: 23px;
     line-height: 1.45;
     font-weight: 800;
     margin: 0;
     color: var(--text-primary);
+    letter-spacing: 0.01em;
   }
 
-  /* 本文表示枠（文字サイズと行間を拡大） */
+  /* 本文表示枠 */
   .summary-box {
     background: rgba(11, 17, 32, 0.6);
     border-radius: 16px;
@@ -152,7 +160,7 @@
   }
 
   .sentence-line {
-    font-size: 19px;
+    font-size: 18px;
     line-height: 1.85;
     color: var(--text-secondary);
     margin: 0 0 14px 0;
@@ -185,6 +193,7 @@
     min-height: 52px;
     background: var(--accent);
     color: #041b29;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
     font-weight: 800;
     font-size: 16px;
     text-decoration: none;
@@ -248,8 +257,14 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
   const API_URL = "/api/news";
-  // 1スライドあたりの目標文字数（60〜75文字程度で確実に分割）
-  const TARGET_PAGE_LENGTH = 65;
+
+  // ==========================================
+  // 【調整用パラメータ】
+  // 1スライドあたりに収める目標文字数（初期値: 90文字）
+  // ・文字量を増やしたい場合: 120〜150 などに上げる
+  // ・文字量を減らしてテンポよく送りたい場合: 60〜70 などに下げる
+  // ==========================================
+  const TARGET_PAGE_LENGTH = 90;
 
   const loadingScreen = document.getElementById("loading-screen");
   const errorScreen = document.getElementById("error-screen");
@@ -260,7 +275,6 @@
   let verticalSwiperInstance = null;
   let horizontalSwiperInstances = [];
 
-  // 句点（。）で分割し、適度な分量（1〜2文）ごとにページ化
   function paginateSentences(text, minTarget) {
     if (!text) return [["（詳細情報は元記事をご確認ください）"]];
     const clean = text.replace(/\s+/g, " ").trim();
@@ -276,7 +290,6 @@
       currentBatch.push(sentence.trim());
       currentLen += sentence.length;
 
-      // 目標文字数を超過、または1文だけでも長めの場合はページを区切る
       if (currentLen >= minTarget) {
         pages.push(currentBatch);
         currentBatch = [];
@@ -320,7 +333,7 @@
           <div class="card">
             <div class="card-top">
               <div class="badges">
-                <span class="badge badge-category">NHKニュース</span>
+                <span class="badge badge-category">トピックス</span>
                 <span class="badge badge-page">続き ${pageIndex + 1}/${totalPages}</span>
                 <span class="badge-date">${escapeHtml(formatDate(article.pubDate))}</span>
               </div>
@@ -331,8 +344,8 @@
             </div>
             <div class="card-bottom">
               <div class="nav-hint">
-                <span>${totalPages > 1 ? (pageIndex < totalPages - 1 ? "👉 [→] 次の文章へ" : "👈 [←] 前の文章へ") : "📄 1ページ完結"}</span>
-                <span>👇 [↓] 次の記事</span>
+                <span>${totalPages > 1 ? (pageIndex < totalPages - 1 ? "👉 [→] 続きを見る" : "👈 [←] 前へ戻る") : "📄 1ページ完結"}</span>
+                <span>👇 [↓ / Space] 次の記事</span>
               </div>
               <a class="read-link" href="${escapeHtml(article.link)}" target="_blank" rel="noopener noreferrer">
                 元記事を開く ↗
@@ -372,7 +385,6 @@
 
       loadingScreen.classList.add("hidden");
 
-      // 横スワイプ（内側）の初期化
       horizontalSwiperInstances = [];
       document.querySelectorAll(".swiper-horizontal-sub").forEach((el) => {
         const hSwiper = new Swiper(el, {
@@ -384,7 +396,6 @@
         horizontalSwiperInstances.push(hSwiper);
       });
 
-      // 縦スワイプ（外側）の初期化
       verticalSwiperInstance = new Swiper("#vertical-swiper", {
         direction: "vertical",
         threshold: 8,
@@ -404,29 +415,30 @@
     }
   }
 
-  // --- PCのキーボード（矢印キー）操作対応 ---
+  // --- キーボード操作（矢印キー + スペースキー対応） ---
   window.addEventListener("keydown", (e) => {
     if (!verticalSwiperInstance) return;
 
     const currentVerticalIndex = verticalSwiperInstance.activeIndex;
     const currentHorizontalSwiper = horizontalSwiperInstances[currentVerticalIndex];
 
-    switch (e.key) {
-      case "ArrowDown": // 下キー: 次の記事へ
+    switch (e.code) {
+      case "ArrowDown":
+      case "Space": // スペースキーまたは下矢印で次の記事へ
         verticalSwiperInstance.slideNext();
         e.preventDefault();
         break;
-      case "ArrowUp": // 上キー: 前の記事へ
+      case "ArrowUp": // 上矢印で前の記事へ
         verticalSwiperInstance.slidePrev();
         e.preventDefault();
         break;
-      case "ArrowRight": // 右キー: 本文の続き（次ページ）へ
+      case "ArrowRight": // 右矢印で続き（次ページ）へ
         if (currentHorizontalSwiper) {
           currentHorizontalSwiper.slideNext();
         }
         e.preventDefault();
         break;
-      case "ArrowLeft": // 左キー: 本文の前のページへ
+      case "ArrowLeft": // 左矢印で前のページへ
         if (currentHorizontalSwiper) {
           currentHorizontalSwiper.slidePrev();
         }
