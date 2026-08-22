@@ -1,9 +1,5 @@
 // src/index.js
-// Single Cloudflare Worker: serves the static frontend (via the "assets"
-// binding) AND handles /api/news server-side, so there's no separate
-// "Pages Functions" concept involved at all — just one Worker.
-
-const RSS_URL = "https://news.yahoo.co.jp/rss/topics/top-picks.xml";
+const RSS_URL = "https://www.nhk.or.jp/rss/news/cat0.xml";
 
 export default {
   async fetch(request, env, ctx) {
@@ -14,7 +10,6 @@ export default {
       return handleNews();
     }
 
-    // Everything else falls through to the static assets (public/ folder).
     return env.ASSETS.fetch(request);
   },
 };
@@ -23,8 +18,7 @@ async function handleNews() {
   try {
     const rssResponse = await fetch(RSS_URL, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; NewsSwipeBot/1.0; +https://workers.dev)",
+        "User-Agent": "Mozilla/5.0 (compatible; NewsSwipeBot/1.0)",
         Accept: "application/rss+xml, application/xml, text/xml, */*",
       },
       cf: {
@@ -74,11 +68,6 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
   });
 }
 
-// --- Minimal, dependency-free RSS/XML item parser -------------------------
-// The Workers runtime has no DOM parser, so we extract <item>...</item>
-// blocks and their child tags with regular expressions. This is intentionally
-// lightweight rather than a full XML parser.
-
 function parseRss(xml) {
   const items = [];
   const itemRegex = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
@@ -95,7 +84,12 @@ function parseRss(xml) {
     const pubDate = normalizeDate(pubDateRaw);
 
     if (title && link) {
-      items.push({ title: title.trim(), description, link, pubDate });
+      items.push({
+        title: title.trim(),
+        description: description || "（詳細情報は元記事をご確認ください）",
+        link,
+        pubDate,
+      });
     }
   }
 
