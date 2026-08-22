@@ -1,13 +1,15 @@
 // src/index.js
-// 複数の主要カテゴリRSSを並列取得して結合する
+// 複数の主要メディア・カテゴリRSSを並列取得して結合
 const RSS_URLS = [
+  // NHKニュース各カテゴリ
   "https://www.nhk.or.jp/rss/news/cat0.xml", // 主要
   "https://www.nhk.or.jp/rss/news/cat1.xml", // 社会
   "https://www.nhk.or.jp/rss/news/cat3.xml", // 科学・文化
-  "https://www.nhk.or.jp/rss/news/cat4.xml", // 政治
   "https://www.nhk.or.jp/rss/news/cat5.xml", // 経済
   "https://www.nhk.or.jp/rss/news/cat6.xml", // 国際
-  "https://www.nhk.or.jp/rss/news/cat7.xml", // スポーツ
+  // 他ニュース・長文メディア
+  "https://gigazine.net/news/rss_2.0/",      // GIGAZINE（長文概要あり）
+  "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml", // ITmedia 速報
 ];
 
 export default {
@@ -25,7 +27,6 @@ export default {
 
 async function handleNews() {
   try {
-    // 複数URLを並列でフェッチ
     const fetchPromises = RSS_URLS.map(async (rssUrl) => {
       try {
         const res = await fetch(rssUrl, {
@@ -46,7 +47,7 @@ async function handleNews() {
     const results = await Promise.all(fetchPromises);
     const flattened = results.flat();
 
-    // 重複記事（同じURL）を除外し、日付順（新しい順）にソート
+    // 重複除去（URLベース）
     const seenLinks = new Set();
     const uniqueArticles = [];
 
@@ -57,6 +58,7 @@ async function handleNews() {
       }
     }
 
+    // 最新日付順にソート
     uniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
     return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
