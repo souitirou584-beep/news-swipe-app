@@ -1,5 +1,14 @@
 // src/index.js
-const RSS_URL = "https://www.nhk.or.jp/rss/news/cat0.xml";
+// 複数の主要カテゴリRSSを並列取得して結合する
+const RSS_URLS = [
+  "https://www.nhk.or.jp/rss/news/cat0.xml", // 主要
+  "https://www.nhk.or.jp/rss/news/cat1.xml", // 社会
+  "https://www.nhk.or.jp/rss/news/cat3.xml", // 科学・文化
+  "https://www.nhk.or.jp/rss/news/cat4.xml", // 政治
+  "https://www.nhk.or.jp/rss/news/cat5.xml", // 経済
+  "https://www.nhk.or.jp/rss/news/cat6.xml", // 国際
+  "https://www.nhk.or.jp/rss/news/cat7.xml", // スポーツ
+];
 
 export default {
   async fetch(request, env, ctx) {
@@ -16,32 +25,45 @@ export default {
 
 async function handleNews() {
   try {
-    const rssResponse = await fetch(RSS_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; NewsSwipeBot/1.0)",
-        Accept: "application/rss+xml, application/xml, text/xml, */*",
-      },
-      cf: {
-        cacheTtl: 300,
-        cacheEverything: true,
-      },
+    // 複数URLを並列でフェッチ
+    const fetchPromises = RSS_URLS.map(async (rssUrl) => {
+      try {
+        const res = await fetch(rssUrl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; NewsSwipeBot/1.0)",
+            Accept: "application/rss+xml, application/xml, text/xml, */*",
+          },
+          cf: { cacheTtl: 300, cacheEverything: true },
+        });
+        if (!res.ok) return [];
+        const xml = await res.text();
+        return parseRss(xml);
+      } catch {
+        return [];
+      }
     });
 
-    if (!rssResponse.ok) {
-      return jsonResponse(
-        { error: `Upstream RSS fetch failed with status ${rssResponse.status}` },
-        502
-      );
+    const results = await Promise.all(fetchPromises);
+    const flattened = results.flat();
+
+    // 重複記事（同じURL）を除外し、日付順（新しい順）にソート
+    const seenLinks = new Set();
+    const uniqueArticles = [];
+
+    for (const article of flattened) {
+      if (!seenLinks.has(article.link)) {
+        seenLinks.add(article.link);
+        uniqueArticles.push(article);
+      }
     }
 
-    const xmlText = await rssResponse.text();
-    const articles = parseRss(xmlText);
+    uniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
-    return jsonResponse({ articles, fetchedAt: new Date().toISOString() }, 200, {
+    return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
       "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
     });
   } catch (err) {
-    return jsonResponse({ error: `Failed to fetch or parse RSS: ${err.message}` }, 500);
+    return jsonResponse({ error: `Failed to fetch news: ${err.message}` }, 500);
   }
 }
 
