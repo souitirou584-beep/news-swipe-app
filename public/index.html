@@ -133,7 +133,7 @@
   }
 
   h1.headline {
-    font-size: 19px;
+    font-size: 18px;
     line-height: 1.4;
     font-weight: 700;
     margin: 0;
@@ -147,12 +147,16 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  p.summary {
-    font-size: 16px;
-    line-height: 1.8;
+  /* 一文ずつの段落スタイル */
+  .sentence-line {
+    font-size: 15px;
+    line-height: 1.75;
     color: var(--text-secondary);
-    margin: 0;
+    margin: 0 0 10px 0;
     word-break: break-word;
+  }
+  .sentence-line:last-child {
+    margin-bottom: 0;
   }
 
   .card-bottom {
@@ -239,7 +243,7 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
   const API_URL = "/api/news";
-  const CHUNK_SIZE = 70; // 1スライドあたりの文字数（60〜80文字）
+  const TARGET_PAGE_LENGTH = 180; // 1ページあたりの目標文字数（文末単位でまとめる）
 
   const loadingScreen = document.getElementById("loading-screen");
   const errorScreen = document.getElementById("error-screen");
@@ -249,15 +253,36 @@
 
   let verticalSwiperInstance = null;
 
-  // テキストを指定文字数ごとに分割
-  function chunkText(text, size) {
-    if (!text) return [""];
+  // 文末（。など）単位で区切り、適度な長さごとにページ分割する
+  function paginateSentences(text, minTarget) {
+    if (!text) return [[]];
     const clean = text.replace(/\s+/g, " ").trim();
-    const chunks = [];
-    for (let i = 0; i < clean.length; i += size) {
-      chunks.push(clean.slice(i, i + size));
+
+    // 句点（。）で分割し、句点を末尾に戻す
+    const rawSentences = clean.split(/(?<=。)/g).filter(s => s.trim().length > 0);
+    if (rawSentences.length === 0) return [[clean]];
+
+    const pages = [];
+    let currentBatch = [];
+    let currentLen = 0;
+
+    for (const sentence of rawSentences) {
+      currentBatch.push(sentence.trim());
+      currentLen += sentence.length;
+
+      // 目標文字数を超えたらページを区切る
+      if (currentLen >= minTarget) {
+        pages.push(currentBatch);
+        currentBatch = [];
+        currentLen = 0;
+      }
     }
-    return chunks.length > 0 ? chunks : [""];
+
+    if (currentBatch.length > 0) {
+      pages.push(currentBatch);
+    }
+
+    return pages;
   }
 
   function formatDate(iso) {
@@ -277,35 +302,41 @@
 
   // 1つの記事（横スワイプ用のSwiperを含む縦スライド）を生成
   function buildArticleSlide(article, articleIndex, totalArticles) {
-    const chunks = chunkText(article.description, CHUNK_SIZE);
-    const totalPages = chunks.length;
+    const pages = paginateSentences(article.description, TARGET_PAGE_LENGTH);
+    const totalPages = pages.length;
 
-    const subSlides = chunks.map((chunk, pageIndex) => `
-      <div class="swiper-slide">
-        <div class="card">
-          <div class="card-top">
-            <div class="badges">
-              <span class="badge badge-category">主要ニュース</span>
-              <span class="badge badge-page">続き ${pageIndex + 1}/${totalPages}</span>
-              <span class="badge-date">${escapeHtml(formatDate(article.pubDate))}</span>
+    const subSlides = pages.map((sentenceArray, pageIndex) => {
+      const sentencesHtml = sentenceArray
+        .map(sent => `<p class="sentence-line">${escapeHtml(sent)}</p>`)
+        .join("");
+
+      return `
+        <div class="swiper-slide">
+          <div class="card">
+            <div class="card-top">
+              <div class="badges">
+                <span class="badge badge-category">主要ニュース</span>
+                <span class="badge badge-page">続き ${pageIndex + 1}/${totalPages}</span>
+                <span class="badge-date">${escapeHtml(formatDate(article.pubDate))}</span>
+              </div>
+              <h1 class="headline">${escapeHtml(article.title)}</h1>
+              <div class="summary-box">
+                ${sentencesHtml}
+              </div>
             </div>
-            <h1 class="headline">${escapeHtml(article.title)}</h1>
-            <div class="summary-box">
-              <p class="summary">${escapeHtml(chunk)}${totalPages > 1 && pageIndex < totalPages - 1 ? "…" : ""}</p>
+            <div class="card-bottom">
+              <div class="nav-hint">
+                <span>${totalPages > 1 ? (pageIndex < totalPages - 1 ? "👉 右で続きを読む" : "👈 左で戻る") : ""}</span>
+                <span>👇 下で次のニュース</span>
+              </div>
+              <a class="read-link" href="${escapeHtml(article.link)}" target="_blank" rel="noopener noreferrer">
+                元記事を開く ↗
+              </a>
             </div>
-          </div>
-          <div class="card-bottom">
-            <div class="nav-hint">
-              <span>${totalPages > 1 ? (pageIndex < totalPages - 1 ? "👉 右で続きを読む" : "👈 左で戻る") : ""}</span>
-              <span>👇 下で次のニュース</span>
-            </div>
-            <a class="read-link" href="${escapeHtml(article.link)}" target="_blank" rel="noopener noreferrer">
-              元記事を開く ↗
-            </a>
           </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
 
     return `
       <div class="swiper-slide">
