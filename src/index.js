@@ -1,7 +1,6 @@
 // src/index.js
 // 多彩なジャンル（総合、社会、生活、エンタメ、ビジネス、テック等）を大量に網羅
 const RSS_URLS = [
-const RSS_URLS = [
   // --- ポータル・総合速報（大幅拡充） ---
   "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja", // Googleニュース 主要
   "https://news.livedoor.com/topics/rss/top.xml",       // ライブドア 主要
