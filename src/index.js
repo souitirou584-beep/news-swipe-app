@@ -1,29 +1,44 @@
 // src/index.js
 // 多彩なジャンル（総合、社会、生活、エンタメ、ビジネス、テック等）を大量に網羅
 const RSS_URLS = [
-  // --- 総合・社会・主要ニュース（速報・要約系） ---
+const RSS_URLS = [
+  // --- ポータル・総合速報（大幅拡充） ---
+  "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja", // Googleニュース 主要
+  "https://news.livedoor.com/topics/rss/top.xml",       // ライブドア 主要
+  "https://news.livedoor.com/topics/rss/dom.xml",       // ライブドア 国内
+  "https://news.livedoor.com/topics/rss/trend.xml",     // ライブドア トレンド
+  "https://news.biglobe.ne.jp/news_rss.xml",           // BIGLOBE
+  "https://www.excite.co.jp/rss/news_editor.xml",       // excite
+  "https://news.goo.ne.jp/rss/index.rdf",               // goo
+  "https://jp.reuters.com/rssFeed/topNews/",            // ロイター（国際・経済速報）
+  "https://feeds.bbci.co.uk/japanese/rss.xml",         // BBC News Japan
+  "https://feeds.feedburner.com/cnn-co-jp",             // CNN Japan
+  "https://newsdig.tbs.co.jp/list/feed/rss",           // TBS NEWS DIG
   "https://www.nhk.or.jp/rss/news/cat0.xml",           // NHK 主要
   "https://www.nhk.or.jp/rss/news/cat1.xml",           // NHK 社会
-  "https://www.nhk.or.jp/rss/news/cat5.xml",           // NHK 経済
-  "https://www.nhk.or.jp/rss/news/cat6.xml",           // NHK 国際
-  "https://www.nhk.or.jp/rss/news/cat7.xml",           // NHK スポーツ
-  "https://www.nhk.or.jp/rss/news/cat3.xml",           // NHK 科学・文化
 
-  // --- 社会・オピニオン・言論（長文配信） ---
-  "https://agora-web.jp/feed",                         // アゴラ 言論プラットフォーム
+  // --- 経済・ビジネス・トレンド ---
+  "https://toyokeizai.net/list/feed/rss",              // 東洋経済
+  "https://diamond.jp/list/feed/rss",                 // ダイヤモンド
+  "https://prtimes.jp/index.rdf",                     // PR TIMES
 
-  // --- ライフハック・生活・カルチャー ---
-  "https://www.lifehacker.jp/feed/index.xml",          // ライフハッカー・ジャパン
-  "https://omocoro.jp/feed/",                          // オモコロ（Webカルチャー・読み物）
-  "https://dailyportalz.jp/feed/headline",             // デイリーポータルZ
+  // --- カルチャー・読み物・ライフスタイル ---
+  "https://gigazine.net/news/rss_2.0/",               // GIGAZINE
+  "https://www.lifehacker.jp/feed/index.xml",         // ライフハッカー
+  "https://omocoro.jp/feed/",                         // オモコロ
+  "https://dailyportalz.jp/feed/headline",            // デイリーポータルZ
+  "https://nazology.kusuguru.co.jp/feed/",             // ナゾロジー
+  "https://natalie.mu/all/feed/news",                 // ナタリー
 
-  // --- ビジネス・新商品トレンド・プレスリリース（長文全文） ---
-  "https://prtimes.jp/index.rdf",                      // PR TIMES（新商品・企業動向）
+  // 科学・テクノロジー・生活
+  "https://nazology.kusuguru.co.jp/feed/",             // ナゾロジー
+  "https://sorae.info/feed",                          // sorae
+  "https://gigazine.net/news/rss_2.0/",               // GIGAZINE
+  "https://www.lifehacker.jp/feed/index.xml",         // ライフハッカー
+  "https://www.roomie.jp/feed/",                      // ROOMIE
 
-  // --- テクノロジー・Webカルチャー ---
-  "https://gigazine.net/news/rss_2.0/",                // GIGAZINE（総合・テック長文）
-  "https://b.hatena.ne.jp/hotentry.rss",               // はてなブックマーク 総合人気エントリー
-  "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml", // ITmedia 速報
+  // 地域ニュース
+  "https://www.niigata-nippo.co.jp/list/feed/rss",     // 新潟日報
 ];
 
 export default {
