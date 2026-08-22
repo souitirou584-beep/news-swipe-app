@@ -1,38 +1,30 @@
 // src/index.js
-// 多彩なジャンル（総合、社会、生活、エンタメ、ビジネス、テック等）を網羅
 const RSS_URLS = [
-  // --- ポータル・総合速報 ---
-  "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja", // Googleニュース 主要
-  "https://news.livedoor.com/topics/rss/top.xml",       // ライブドア 主要
-  "https://news.livedoor.com/topics/rss/dom.xml",       // ライブドア 国内
-  "https://news.livedoor.com/topics/rss/trend.xml",     // ライブドア トレンド
-  "https://news.biglobe.ne.jp/news_rss.xml",           // BIGLOBE
-  "https://www.excite.co.jp/rss/news_editor.xml",       // excite
-  "https://news.goo.ne.jp/rss/index.rdf",               // goo
-  "https://jp.reuters.com/rssFeed/topNews/",            // ロイター（国際・経済速報）
-  "https://feeds.bbci.co.uk/japanese/rss.xml",         // BBC News Japan
-  "https://feeds.feedburner.com/cnn-co-jp",             // CNN Japan
-  "https://newsdig.tbs.co.jp/list/feed/rss",           // TBS NEWS DIG
-  "https://www.nhk.or.jp/rss/news/cat0.xml",           // NHK 主要
-  "https://www.nhk.or.jp/rss/news/cat1.xml",           // NHK 社会
-
-  // --- 経済・ビジネス・トレンド ---
-  "https://toyokeizai.net/list/feed/rss",              // 東洋経済
-  "https://diamond.jp/list/feed/rss",                 // ダイヤモンド
-  "https://prtimes.jp/index.rdf",                     // PR TIMES
-
-  // --- カルチャー・読み物・ライフスタイル ---
-  "https://gigazine.net/news/rss_2.0/",               // GIGAZINE
-  "https://www.lifehacker.jp/feed/index.xml",         // ライフハッカー
-  "https://omocoro.jp/feed/",                         // オモコロ
-  "https://dailyportalz.jp/feed/headline",            // デイリーポータルZ
-  "https://natalie.mu/all/feed/news",                 // ナタリー
-  "https://sorae.info/feed",                          // sorae（宇宙）
-  "https://nazology.kusuguru.co.jp/feed/",             // ナゾロジー
-  "https://www.roomie.jp/feed/",                      // ROOMIE
-
-  // --- 地域ニュース ---
-  "https://www.niigata-nippo.co.jp/list/feed/rss",     // 新潟日報
+  "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja",
+  "https://news.livedoor.com/topics/rss/top.xml",
+  "https://news.livedoor.com/topics/rss/dom.xml",
+  "https://news.livedoor.com/topics/rss/trend.xml",
+  "https://news.biglobe.ne.jp/news_rss.xml",
+  "https://www.excite.co.jp/rss/news_editor.xml",
+  "https://news.goo.ne.jp/rss/index.rdf",
+  "https://jp.reuters.com/rssFeed/topNews/",
+  "https://feeds.bbci.co.uk/japanese/rss.xml",
+  "https://feeds.feedburner.com/cnn-co-jp",
+  "https://newsdig.tbs.co.jp/list/feed/rss",
+  "https://www.nhk.or.jp/rss/news/cat0.xml",
+  "https://www.nhk.or.jp/rss/news/cat1.xml",
+  "https://toyokeizai.net/list/feed/rss",
+  "https://diamond.jp/list/feed/rss",
+  "https://prtimes.jp/index.rdf",
+  "https://gigazine.net/news/rss_2.0/",
+  "https://www.lifehacker.jp/feed/index.xml",
+  "https://omocoro.jp/feed/",
+  "https://dailyportalz.jp/feed/headline",
+  "https://natalie.mu/all/feed/news",
+  "https://sorae.info/feed",
+  "https://nazology.kusuguru.co.jp/feed/",
+  "https://www.roomie.jp/feed/",
+  "https://www.niigata-nippo.co.jp/list/feed/rss"
 ];
 
 export default {
@@ -77,19 +69,23 @@ async function handleNews() {
     const flattened = results.flat();
 
     const seenLinks = new Set();
+    const seenTitles = new Set();
     const uniqueArticles = [];
 
     for (const article of flattened) {
-      if (!seenLinks.has(article.link)) {
+      const titleKey = article.title.replace(/\s+/g, "").slice(0, 15);
+      if (!seenLinks.has(article.link) && !seenTitles.has(titleKey)) {
         seenLinks.add(article.link);
+        seenTitles.add(titleKey);
         uniqueArticles.push(article);
       }
     }
 
-    uniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    // ランダムシャッフルして飽きさせない並びに
+    uniqueArticles.sort(() => Math.random() - 0.5);
 
     return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
-      "Cache-Control": "s-maxage=300, stale-while-revalidate=600",
+      "Cache-Control": "s-maxage=180, stale-while-revalidate=360",
     });
   } catch (err) {
     return jsonResponse({ error: `Failed to fetch news: ${err.message}` }, 500);
