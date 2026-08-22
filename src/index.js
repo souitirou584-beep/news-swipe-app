@@ -1,15 +1,10 @@
 // src/index.js
-// 複数の主要メディア・カテゴリRSSを並列取得して結合
+// 全文（content:encoded）配信を行っているメディアを含むRSSリスト
 const RSS_URLS = [
-  // NHKニュース各カテゴリ
-  "https://www.nhk.or.jp/rss/news/cat0.xml", // 主要
-  "https://www.nhk.or.jp/rss/news/cat1.xml", // 社会
-  "https://www.nhk.or.jp/rss/news/cat3.xml", // 科学・文化
-  "https://www.nhk.or.jp/rss/news/cat5.xml", // 経済
-  "https://www.nhk.or.jp/rss/news/cat6.xml", // 国際
-  // 他ニュース・長文メディア
-  "https://gigazine.net/news/rss_2.0/",      // GIGAZINE（長文概要あり）
-  "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml", // ITmedia 速報
+  "https://gigazine.net/news/rss_2.0/",                   // GIGAZINE（長文・全文配信）
+  "https://www.publickey1.jp/atom.xml",                   // Publickey（IT・開発系、全文配信）
+  "https://b.hatena.ne.jp/hotentry/it.rss",               // はてなブックマーク（IT人気記事）
+  "https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml",    // ITmedia
 ];
 
 export default {
@@ -47,7 +42,6 @@ async function handleNews() {
     const results = await Promise.all(fetchPromises);
     const flattened = results.flat();
 
-    // 重複除去（URLベース）
     const seenLinks = new Set();
     const uniqueArticles = [];
 
@@ -58,7 +52,6 @@ async function handleNews() {
       }
     }
 
-    // 最新日付順にソート
     uniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
     return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
@@ -94,17 +87,35 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
 
 function parseRss(xml) {
   const items = [];
-  const itemRegex = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  // RSS <item> または Atom <entry> に対応
+  const itemRegex = /<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let match;
 
   while ((match = itemRegex.exec(xml)) !== null) {
-    const block = match[1];
+    const block = match[2];
 
     const title = decodeEntities(stripTags(extractTag(block, "title")));
-    const rawDescription = extractTag(block, "description");
-    const description = decodeEntities(stripTags(rawDescription)).trim();
-    const link = decodeEntities(stripTags(extractTag(block, "link"))).trim();
-    const pubDateRaw = decodeEntities(stripTags(extractTag(block, "pubDate"))).trim();
+    
+    // 【重要】全文タグ (content:encoded / content) を最優先で取得し、無ければ description / summary を使用
+    let rawContent = extractTag(block, "content:encoded") 
+                  || extractTag(block, "content") 
+                  || extractTag(block, "description") 
+                  || extractTag(block, "summary");
+
+    // HTMLタグや改行をクリーンアップして本文テキスト化
+    const description = decodeEntities(stripTags(rawContent)).trim();
+
+    // linkタグの抽出（RSS形式とAtom形式の両方に対応）
+    let link = extractTag(block, "link");
+    if (!link || link.includes("<")) {
+      const linkHrefMatch = /<link\b[^>]*href=["']([^"']+)["']/i.exec(block);
+      if (linkHrefMatch) link = linkHrefMatch[1];
+    }
+    link = decodeEntities(stripTags(link)).trim();
+
+    const pubDateRaw = decodeEntities(stripTags(
+      extractTag(block, "pubDate") || extractTag(block, "published") || extractTag(block, "updated")
+    )).trim();
     const pubDate = normalizeDate(pubDateRaw);
 
     if (title && link) {
@@ -121,7 +132,9 @@ function parseRss(xml) {
 }
 
 function extractTag(block, tagName) {
-  const re = new RegExp(`<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i");
+  // ネームスペース付きタグにもマッチする正規表現
+  const escapedTagName = tagName.replace(":", "\\:");
+  const re = new RegExp(`<${escapedTagName}\\b[^>]*>([\\s\\S]*?)<\\/${escapedTagName}>`, "i");
   const m = re.exec(block);
   if (!m) return "";
   let content = m[1];
@@ -130,7 +143,13 @@ function extractTag(block, tagName) {
 }
 
 function stripTags(str) {
-  return str.replace(/<[^>]*>/g, "");
+  if (!str) return "";
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") // scriptタグ除去
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")   // styleタグ除去
+    .replace(/<[^>]*>/g, " ")                                          // 全HTMLタグ除去
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ");                                             // 連続空白を1つに統合
 }
 
 function decodeEntities(str) {
