@@ -1,7 +1,7 @@
 // src/index.js
-// 多彩なジャンル（総合、社会、生活、エンタメ、ビジネス、テック等）を大量に網羅
+// 多彩なジャンル（総合、社会、生活、エンタメ、ビジネス、テック等）を網羅
 const RSS_URLS = [
-  // --- ポータル・総合速報（大幅拡充） ---
+  // --- ポータル・総合速報 ---
   "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja", // Googleニュース 主要
   "https://news.livedoor.com/topics/rss/top.xml",       // ライブドア 主要
   "https://news.livedoor.com/topics/rss/dom.xml",       // ライブドア 国内
@@ -26,17 +26,12 @@ const RSS_URLS = [
   "https://www.lifehacker.jp/feed/index.xml",         // ライフハッカー
   "https://omocoro.jp/feed/",                         // オモコロ
   "https://dailyportalz.jp/feed/headline",            // デイリーポータルZ
-  "https://nazology.kusuguru.co.jp/feed/",             // ナゾロジー
   "https://natalie.mu/all/feed/news",                 // ナタリー
-
-  // 科学・テクノロジー・生活
+  "https://sorae.info/feed",                          // sorae（宇宙）
   "https://nazology.kusuguru.co.jp/feed/",             // ナゾロジー
-  "https://sorae.info/feed",                          // sorae
-  "https://gigazine.net/news/rss_2.0/",               // GIGAZINE
-  "https://www.lifehacker.jp/feed/index.xml",         // ライフハッカー
   "https://www.roomie.jp/feed/",                      // ROOMIE
 
-  // 地域ニュース
+  // --- 地域ニュース ---
   "https://www.niigata-nippo.co.jp/list/feed/rss",     // 新潟日報
 ];
 
@@ -55,11 +50,10 @@ export default {
 
 async function handleNews() {
   try {
-    // 全URLを並列でフェッチ（エラーや遅延が起きても他のフィードを落とさない設計）
     const fetchPromises = RSS_URLS.map(async (rssUrl) => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4秒タイムアウト
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
 
         const res = await fetch(rssUrl, {
           signal: controller.signal,
@@ -82,7 +76,6 @@ async function handleNews() {
     const results = await Promise.all(fetchPromises);
     const flattened = results.flat();
 
-    // 重複除去（URLベース）
     const seenLinks = new Set();
     const uniqueArticles = [];
 
@@ -93,7 +86,6 @@ async function handleNews() {
       }
     }
 
-    // 最新日付順にソート
     uniqueArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
     return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
@@ -129,7 +121,6 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
 
 function parseRss(xml) {
   const items = [];
-  // RSS <item> または Atom <entry> にマッチ
   const itemRegex = /<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let match;
 
@@ -137,17 +128,14 @@ function parseRss(xml) {
     const block = match[2];
 
     const title = decodeEntities(stripTags(extractTag(block, "title")));
-    
-    // 【判定ロジック】
-    // 全文タグ (content:encoded / content) を最優先で探し、無ければ description / summary を使用
-    let rawContent = extractTag(block, "content:encoded") 
-                  || extractTag(block, "content") 
-                  || extractTag(block, "description") 
+
+    let rawContent = extractTag(block, "content:encoded")
+                  || extractTag(block, "content")
+                  || extractTag(block, "description")
                   || extractTag(block, "summary");
 
     const description = decodeEntities(stripTags(rawContent)).trim();
 
-    // リンク抽出（RSS形式・Atom形式の両対応）
     let link = extractTag(block, "link");
     if (!link || link.includes("<")) {
       const linkHrefMatch = /<link\b[^>]*href=["']([^"']+)["']/i.exec(block);
