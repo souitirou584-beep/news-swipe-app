@@ -1,3 +1,4 @@
+// src/index.js
 const RSS_URLS = [
   "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja",
   "https://news.livedoor.com/topics/rss/top.xml",
@@ -123,12 +124,15 @@ function parseRss(xml) {
 
     const title = decodeEntities(stripTags(extractTag(block, "title")));
 
-    let rawContent = extractTag(block, "content:encoded")
+    const rawContent = extractTag(block, "content:encoded")
                   || extractTag(block, "content")
                   || extractTag(block, "description")
                   || extractTag(block, "summary");
 
     const description = decodeEntities(stripTags(rawContent)).trim();
+
+    // 画像URLの抽出（enclosure / media:content / media:thumbnail / <img> タグ）
+    let imageUrl = extractImageUrl(block, rawContent);
 
     let link = extractTag(block, "link");
     if (!link || link.includes("<")) {
@@ -148,11 +152,30 @@ function parseRss(xml) {
         description: description || "（詳細情報は元記事をご確認ください）",
         link,
         pubDate,
+        imageUrl: imageUrl || null,
       });
     }
   }
 
   return items;
+}
+
+function extractImageUrl(block, rawContent) {
+  // 1. enclosure タグ
+  const enclosureMatch = /<enclosure\b[^>]*url=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/i.exec(block);
+  if (enclosureMatch) return enclosureMatch[1];
+
+  // 2. media:content / media:thumbnail
+  const mediaMatch = /<media:(?:content|thumbnail)\b[^>]*url=["']([^"']+)["']/i.exec(block);
+  if (mediaMatch) return mediaMatch[1];
+
+  // 3. 本文中の img タグ
+  const imgMatch = /<img\b[^>]*src=["']([^"']+)["']/i.exec(rawContent || "");
+  if (imgMatch && !imgMatch[1].includes("tracking") && !imgMatch[1].includes("beacon")) {
+    return imgMatch[1];
+  }
+
+  return null;
 }
 
 function extractTag(block, tagName) {
