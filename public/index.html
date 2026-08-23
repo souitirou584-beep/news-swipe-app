@@ -108,15 +108,16 @@
   }
 
   .card-top {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
   }
 
   .badges {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 12px;
   }
 
   .badge {
@@ -147,11 +148,11 @@
 
   /* 表紙（1枚目）のタイトル専用スタイル */
   .cover-box {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 280px;
     text-align: center;
     padding: 20px 10px;
   }
@@ -166,20 +167,29 @@
     letter-spacing: 0.02em;
   }
 
-  /* 本文（2枚目以降）の表示枠 */
+  /* 本文（2枚目以降）の中央配置コンテナ */
+  .summary-container {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 0;
+  }
+
   .summary-box {
+    width: 100%;
     background: var(--card-inner);
-    border-radius: 16px;
-    padding: 20px 18px;
+    border-radius: 18px;
+    padding: 24px 20px;
     border: 1px solid #222222;
-    min-height: 200px;
   }
 
   .sentence-line {
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1.85;
     color: var(--text-secondary);
-    margin: 0 0 14px 0;
+    margin: 0 0 16px 0;
     word-break: break-word;
   }
   .sentence-line:last-child {
@@ -187,15 +197,25 @@
   }
 
   /* 画像スライド */
+  .image-container {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
   .image-box {
+    width: 100%;
+    height: 100%;
+    max-height: 320px;
     background: var(--card-inner);
-    border-radius: 16px;
+    border-radius: 18px;
     overflow: hidden;
     border: 1px solid #222222;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 280px;
   }
 
   .image-box img {
@@ -205,10 +225,11 @@
   }
 
   .card-bottom {
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
   .nav-hint {
@@ -275,7 +296,6 @@
     <div class="indicator" id="indicator">- / -</div>
   </header>
 
-  <!-- 縦スワイプ（記事切り替え） -->
   <div class="swiper swiper-vertical-main" id="vertical-swiper">
     <div class="swiper-wrapper" id="vertical-wrapper"></div>
   </div>
@@ -295,8 +315,6 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
   const API_URL = "/api/news";
-
-  // 1ページあたりの目標文字数（本文用）
   const TARGET_PAGE_LENGTH = 90;
 
   const loadingScreen = document.getElementById("loading-screen");
@@ -352,12 +370,9 @@
       .replace(/"/g, "&quot;");
   }
 
-  // 記事スライドの構築（1枚目: 表紙タイトル / 2枚目以降: 本文 / 最終: 画像）
   function buildArticleSlide(article, articleIndex, totalArticles) {
     const textPages = paginateSentences(article.description, TARGET_PAGE_LENGTH);
     const hasImage = Boolean(article.imageUrl);
-    
-    // 総ページ数 = 表紙(1) + 本文ページ数 + 画像(1 if exists)
     const totalPages = 1 + textPages.length + (hasImage ? 1 : 0);
 
     const subSlides = [];
@@ -378,7 +393,7 @@
           </div>
           <div class="card-bottom">
             <div class="nav-hint">
-              <span>👉 [→ / Space] 本文を読む</span>
+              <span>👉 [→ / Space] 本文へ</span>
               <span>👇 [↓] 次の記事</span>
             </div>
             <a class="read-link" href="${escapeHtml(article.link)}" target="_blank" rel="noopener noreferrer">
@@ -389,7 +404,7 @@
       </div>
     `);
 
-    // --- 2枚目以降：本文テキスト ---
+    // --- 2枚目以降：本文テキスト（中央配置） ---
     textPages.forEach((sentenceArray, idx) => {
       const pageNum = idx + 2;
       const sentencesHtml = sentenceArray
@@ -405,8 +420,10 @@
                 <span class="badge badge-page">${pageNum} / ${totalPages}</span>
                 <span class="badge-date">${escapeHtml(formatDate(article.pubDate))}</span>
               </div>
-              <div class="summary-box">
-                ${sentencesHtml}
+              <div class="summary-container">
+                <div class="summary-box">
+                  ${sentencesHtml}
+                </div>
               </div>
             </div>
             <div class="card-bottom">
@@ -423,7 +440,7 @@
       `);
     });
 
-    // --- 最終枚：添付画像（存在する場合のみ） ---
+    // --- 最終枚：添付画像 ---
     if (hasImage) {
       subSlides.push(`
         <div class="swiper-slide">
@@ -434,8 +451,10 @@
                 <span class="badge badge-page">${totalPages} / ${totalPages}</span>
                 <span class="badge-date">${escapeHtml(formatDate(article.pubDate))}</span>
               </div>
-              <div class="image-box">
-                <img src="${escapeHtml(article.imageUrl)}" alt="記事添付画像" loading="lazy" onerror="this.parentElement.style.display='none';" />
+              <div class="image-container">
+                <div class="image-box">
+                  <img src="${escapeHtml(article.imageUrl)}" alt="記事添付画像" loading="lazy" onerror="this.parentElement.style.display='none';" />
+                </div>
               </div>
             </div>
             <div class="card-bottom">
@@ -511,7 +530,6 @@
     }
   }
 
-  // --- キーボード操作（スペースキーでの自動巡回ロジック） ---
   window.addEventListener("keydown", (e) => {
     if (!verticalSwiperInstance) return;
 
@@ -521,11 +539,9 @@
     if (e.code === "Space") {
       e.preventDefault();
       if (currentHorizontalSwiper) {
-        // 現在の記事に次の横スライド（本文の続き or 画像）がある場合は右へ進む
         if (!currentHorizontalSwiper.isEnd) {
           currentHorizontalSwiper.slideNext();
         } else {
-          // 記事の最後のページに達している場合は次の記事（下）へ移動
           verticalSwiperInstance.slideNext();
         }
       } else {
