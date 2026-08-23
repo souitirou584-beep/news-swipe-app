@@ -1,4 +1,3 @@
-// src/index.js
 const RSS_URLS = [
   "https://news.google.com/rss?hl=ja&gl=JP&ceid=JP:ja",
   "https://news.livedoor.com/topics/rss/top.xml",
