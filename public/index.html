@@ -15,7 +15,6 @@
     --bg: #000000;
     --card: #121212;
     --card-border: #262626;
-    --card-inner: #181818;
     --accent: #ffffff;
     --accent-bg: #222222;
     --text-primary: #f5f5f5;
@@ -167,26 +166,25 @@
     letter-spacing: 0.02em;
   }
 
-  /* 本文（2枚目以降）の中央配置コンテナ */
+  /* 本文（2枚目以降）の中央配置コンテナ（枠・背景色の違いを完全撤廃） */
   .summary-container {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 10px 0;
+    padding: 10px 4px;
   }
 
   .summary-box {
     width: 100%;
-    background: var(--card-inner);
-    border-radius: 18px;
-    padding: 24px 20px;
-    border: 1px solid #222222;
+    background: transparent;
+    border: none;
+    padding: 0;
   }
 
   .sentence-line {
-    font-size: 20px;
+    font-size: 21px;
     line-height: 1.85;
     color: var(--text-secondary);
     margin: 0 0 16px 0;
@@ -209,10 +207,10 @@
     width: 100%;
     height: 100%;
     max-height: 320px;
-    background: var(--card-inner);
+    background: #181818;
     border-radius: 18px;
     overflow: hidden;
-    border: 1px solid #222222;
+    border: 1px solid var(--card-border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -377,7 +375,7 @@
 
     const subSlides = [];
 
-    // --- 1枚目：表紙（タイトル中央配置） ---
+    // 1枚目：表紙タイトル
     subSlides.push(`
       <div class="swiper-slide">
         <div class="card">
@@ -404,7 +402,7 @@
       </div>
     `);
 
-    // --- 2枚目以降：本文テキスト（中央配置） ---
+    // 2枚目以降：本文テキスト（枠・薄色背景をなくしフラットに中央配置）
     textPages.forEach((sentenceArray, idx) => {
       const pageNum = idx + 2;
       const sentencesHtml = sentenceArray
@@ -440,7 +438,7 @@
       `);
     });
 
-    // --- 最終枚：添付画像 ---
+    // 最終枚：添付画像
     if (hasImage) {
       subSlides.push(`
         <div class="swiper-slide">
