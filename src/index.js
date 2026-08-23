@@ -81,7 +81,6 @@ async function handleNews() {
       }
     }
 
-    // ランダムシャッフルして飽きさせない並びに
     uniqueArticles.sort(() => Math.random() - 0.5);
 
     return jsonResponse({ articles: uniqueArticles, fetchedAt: new Date().toISOString() }, 200, {
